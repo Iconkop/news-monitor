@@ -1,0 +1,9 @@
+https://feeds.bbci.co.uk/zhongwen/simp/rss.xml
+https://cn.nytimes.com/rss/
+https://www.reuters.com/rssFeed/topNews
+https://www.apnews.com/apf-topnews?format=atom
+https://rss.cnn.com/rss/edition.rss
+https://www.ftchinese.com/rss/feed
+https://www.wsj.com/news/rss
+https://www.voachinese.com/api/zmkyrekmir
+https://www.rfi.fr/zh/rss
