@@ -2,7 +2,9 @@
 # -*- coding: utf-8 -*-
 import os, json, hashlib, smtplib, sys, feedparser, requests
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from email.header import Header
+from email.utils import formataddr
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone, timedelta
 from urllib.parse import urlparse
@@ -126,6 +128,7 @@ def format_html(items):
     """
     return full_html
 
+# ✅ 彻底修复 UTF-8 邮件编码
 def send_mail(subject, html_body):
     smtp_server = os.environ.get("SMTP_SERVER")
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
@@ -134,17 +137,19 @@ def send_mail(subject, html_body):
     to_email = os.environ.get("TO_EMAIL")
     from_email = os.environ.get("FROM_EMAIL", smtp_user)
 
-    msg = MIMEText(html_body, "html", "utf-8")
+    # 使用 MIMEMultipart + Header 强制 UTF-8 编码
+    msg = MIMEMultipart("alternative")
     msg["Subject"] = Header(subject, "utf-8")
-    msg["From"] = Header(from_email, "utf-8")
+    msg["From"] = formataddr(("新闻监测机器人", from_email))
     msg["To"] = Header(to_email, "utf-8")
+    msg.attach(MIMEText(html_body, "html", "utf-8"))
 
     try:
         with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as s:
             s.ehlo()
             s.starttls()
             s.login(smtp_user, smtp_pass)
-            s.sendmail(from_email, [to_email], msg.as_string().encode("utf-8"))
+            s.sendmail(from_email, [to_email], msg.as_string())
         print("[INFO] 邮件发送成功 ✅")
     except Exception as e:
         print(f"[ERROR] 邮件发送失败: {e}")
