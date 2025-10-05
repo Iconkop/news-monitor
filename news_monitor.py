@@ -136,15 +136,16 @@ def send_mail(subject, html_body):
 
     msg = MIMEText(html_body, "html", "utf-8")
     msg["Subject"] = Header(subject, "utf-8")
-    msg["From"] = from_email
-    msg["To"] = to_email
+    msg["From"] = Header(from_email, "utf-8")
+    msg["To"] = Header(to_email, "utf-8")
 
     try:
         with smtplib.SMTP(smtp_server, smtp_port, timeout=30) as s:
+            s.ehlo()
             s.starttls()
             s.login(smtp_user, smtp_pass)
-            s.sendmail(from_email, [to_email], msg.as_string())
-        print("[INFO] 邮件发送成功")
+            s.sendmail(from_email, [to_email], msg.as_string().encode("utf-8"))
+        print("[INFO] 邮件发送成功 ✅")
     except Exception as e:
         print(f"[ERROR] 邮件发送失败: {e}")
         sys.exit(2)
