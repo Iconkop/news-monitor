@@ -13,22 +13,30 @@ import favicon
 STATE_FILE = "state.json"
 MAX_ITEMS_PER_RUN = 30
 
+
+# 读取文本行
 def load_lines(path):
     if not os.path.exists(path):
         return []
     with open(path, "r", encoding="utf-8") as f:
         return [line.strip() for line in f if line.strip()]
 
+
+# 去掉 HTML 标签
 def sanitize_html_to_text(html):
     soup = BeautifulSoup(html or "", "html.parser")
     return soup.get_text(" ", strip=True)
 
+
+# 为每条新闻生成唯一 fingerprint
 def entry_fingerprint(title, link):
     h = hashlib.sha256()
     h.update((title or "").encode("utf-8"))
     h.update((link or "").encode("utf-8"))
     return h.hexdigest()
 
+
+# 读取已推送状态
 def load_state():
     if not os.path.exists(STATE_FILE):
         return {"seen": set()}
@@ -39,10 +47,14 @@ def load_state():
     except Exception:
         return {"seen": set()}
 
+
+# 保存状态
 def save_state(state):
     with open(STATE_FILE, "w", encoding="utf-8") as f:
         json.dump({"seen": list(state["seen"])}, f, ensure_ascii=False, indent=2)
 
+
+# 自动提取网站 favicon
 def get_favicon_from_url(link):
     try:
         domain = urlparse(link).netloc
@@ -55,6 +67,8 @@ def get_favicon_from_url(link):
         pass
     return None
 
+
+# 抓取 RSS 新闻
 def collect_latest_news(feeds):
     items = []
     for url in feeds:
@@ -78,6 +92,8 @@ def collect_latest_news(feeds):
             print(f"[WARN] 无法解析 {url}: {ex}")
     return items
 
+
+# HTML 邮件卡片模板
 def format_html(items):
     card_html = ""
     for it in items:
@@ -128,7 +144,8 @@ def format_html(items):
     """
     return full_html
 
-# ✅ 彻底修复 UTF-8 邮件编码
+
+# ✅ 最终修复版：完全 UTF-8 安全发送
 def send_mail(subject, html_body):
     smtp_server = os.environ.get("SMTP_SERVER")
     smtp_port = int(os.environ.get("SMTP_PORT", "587"))
@@ -137,7 +154,6 @@ def send_mail(subject, html_body):
     to_email = os.environ.get("TO_EMAIL")
     from_email = os.environ.get("FROM_EMAIL", smtp_user)
 
-    # 使用 MIMEMultipart + Header 强制 UTF-8 编码
     msg = MIMEMultipart("alternative")
     msg["Subject"] = Header(subject, "utf-8")
     msg["From"] = formataddr(("新闻监测机器人", from_email))
@@ -149,11 +165,13 @@ def send_mail(subject, html_body):
             s.ehlo()
             s.starttls()
             s.login(smtp_user, smtp_pass)
-            s.sendmail(from_email, [to_email], msg.as_string())
+            # ✅ 用 send_message() 彻底避免 ASCII fallback
+            s.send_message(msg)
         print("[INFO] 邮件发送成功 ✅")
     except Exception as e:
         print(f"[ERROR] 邮件发送失败: {e}")
         sys.exit(2)
+
 
 def main():
     feeds = load_lines("feeds.txt")
@@ -185,6 +203,7 @@ def main():
 
     send_mail(subject, html_body)
     save_state(state)
+
 
 if __name__ == "__main__":
     main()
